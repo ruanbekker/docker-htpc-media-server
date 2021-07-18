@@ -5,8 +5,8 @@ PUID=1000
 PGID=1000
 # data directories
 MERGERFS_ROOT=/data/htpc
-DISK_ROOT=/disk1/htpc
-DOCKER_ROOT=/disk2/docker-volumes
+CONFIG_ROOT=/disk1/htpc
+DOCKER_ROOT=~/htpc/docker-volumes
 SSD_ROOT=/home/htpc/.data
 # private internet access
 PIA_USERNAME=
