@@ -1,0 +1,599 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:1.7.14
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - 80:80
+    command: >
+      --api
+      --docker
+      --docker.domain=${DOMAIN}
+      --docker.watch
+      --defaultentrypoints=http
+      --entrypoints='Name:http Address::80'
+      --logLevel=INFO
+      --accessLog
+      --accessLog.format='json'
+      --metrics
+      --metrics.prometheus
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - public
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        
+  jackett:
+    container_name: jackett
+    image: linuxserver/jackett:latest
+    restart: unless-stopped
+    network_mode: host
+    # due to network mode port is exposed on 9117
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${MERGERFS_ROOT}/downloads/torrent-blackhole:/downloads
+      - ${CONFIG_ROOT}/config/jackett:/config
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  nzbget:
+    container_name: nzbget
+    image: linuxserver/nzbget:latest
+    restart: unless-stopped
+    network_mode: host
+    # due to network mode port is exposed on port 6789
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${MERGERFS_ROOT}/downloads:/downloads
+      - ${CONFIG_ROOT}/config/nzbget:/config
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  hydra:
+    image: linuxserver/hydra
+    hostname: hydra
+    container_name: hydra
+    volumes:
+      - ${CONFIG_ROOT}/config/hydra:/config
+      - ${MERGERFS_ROOT}/downloads:/downloads
+      - ${MERGERFS_ROOT}/shared/hydra:/shared
+    labels:
+      - traefik.frontend.rule=Host:hydra.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=5075
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    restart: always
+    depends_on:
+      - traefik
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    labels:
+      - traefik.frontend.rule=Host:hydra.homedns.xyz
+      - traefik.enable=true
+      - traefik.port=5075
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  sonarr:
+    container_name: sonarr
+    image: ghcr.io/linuxserver/sonarr:latest
+    restart: unless-stopped
+    network_mode: host
+    # due to network mode port is exposed on 8989
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID} 
+      - TZ=${TZ} 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${CONFIG_ROOT}/config/sonarr:/config 
+      - ${MERGERFS_ROOT}/complete/anime:/anime 
+      - ${MERGERFS_ROOT}/complete/anime-series:/anime-series 
+      - ${MERGERFS_ROOT}/complete/tv-cartoons:/cartoons 
+      - ${MERGERFS_ROOT}/complete/tv:/tv 
+      - ${MERGERFS_ROOT}/downloads:/downloads
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  radarr:
+    container_name: radarr
+    image: linuxserver/radarr:latest
+    restart: unless-stopped
+    network_mode: host
+    # due to network mode port is exposed on 7878
+    environment:
+      - PUID=${PUID} 
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${CONFIG_ROOT}/config/radarr:/config 
+      - ${MERGERFS_ROOT}/complete/movie-cartoons:/cartoons
+      - ${MERGERFS_ROOT}/complete/movies:/movies 
+      - ${MERGERFS_ROOT}/complete/anime-movies:/anime-movies 
+      - ${MERGERFS_ROOT}/downloads:/downloads 
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
+    network_mode: host
+    # due to network mode port is exposed on 8686
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - UMASK_SET=022
+    volumes:
+      - ${CONFIG_ROOT}/config/lidarr/config:/config
+      - ${MERGERFS_ROOT}/complete/music:/music
+      - ${MERGERFS_ROOT}/downloads:/downloads
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  mylar:
+    image: ghcr.io/linuxserver/mylar
+    container_name: mylar
+    network_mode: host
+    # due to network mode port is exposed on 8090
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/config/mylar/config:/config
+      - ${MERGERFS_ROOT}/complete/comics:/comics
+      - ${MERGERFS_ROOT}/downloads:/downloads
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  readarr:
+    image: hotio/readarr:nightly
+    container_name: readarr
+    network_mode: host
+    # due to network mode port is exposed on 8787
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/config/readarr/config:/config
+      - ${MERGERFS_ROOT}/complete/books:/data/media/books
+      - ${MERGERFS_ROOT}/downloads:/data/downloads
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      - traefik.frontend.rule=Host:readarr.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=8787
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    networks:
+      - public
+    restart: unless-stopped
+    depends_on:
+      - traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  calibre-web:
+    image: linuxserver/calibre-web
+    container_name: calibre-web
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - DOCKER_MODS=linuxserver/calibre-web:calibre
+    volumes:
+      - ${CONFIG_ROOT}/config/calibre-web/config:/config
+      - ${MERGERFS_ROOT}/complete/books:/books
+    labels:
+      - traefik.frontend.rule=Host:calibre-web.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=8083
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    networks:
+      - public
+    restart: unless-stopped
+    depends_on:
+      - traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  calibre:
+    image: linuxserver/calibre
+    container_name: calibre
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - DOCKER_MODS=linuxserver/calibre-web:calibre
+    volumes:
+      - ${CONFIG_ROOT}/config/calibre-web/config:/config
+      - ${MERGERFS_ROOT}/downloads:/data/downloads
+      - ${MERGERFS_ROOT}/complete/books:/data/media/books:rw
+    labels:
+      - traefik.frontend.rule=Host:calibre.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=8080
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    networks:
+      - public
+    restart: unless-stopped
+    depends_on:
+      - traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  transmission-vpn:
+    image: haugene/transmission-openvpn
+    container_name: transmission-vpn
+    hostname: transmission
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    restart: always
+    ports:
+    - 9091:9091
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${CONFIG_ROOT}/config/transmission-vpn/docker/transmission-vpn:/transmission-vpn
+      - ${CONFIG_ROOT}/config/transmission-vpn/docker/shared:/shared
+      - ${MERGERFS_ROOT}/downloads:/downloads
+    environment:
+      - OPENVPN_PROVIDER=PIA
+      - OPENVPN_USERNAME=${PIA_USERNAME}
+      - OPENVPN_PASSWORD=${PIA_PASSWORD}
+      - OPENVPN_CONFIG=france
+      - OPENVPN_OPTS=--inactive 3600 --ping 10 --ping-exit 60
+      - LOCAL_NETWORK=${LOCAL_NETWORK_CIDR}
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - TRANSMISSION_RPC_AUTHENTICATION_REQUIRED=true
+      - TRANSMISSION_RPC_HOST_WHITELIST="127.0.0.1,192.168.*.*"
+      - TRANSMISSION_RPC_PASSWORD=${TRANSMISSION_RPC_PASSWORD}
+      - TRANSMISSION_RPC_USERNAME=${TRANSMISSION_RPC_USERNAME}
+      - TRANSMISSION_UMASK=002
+      - TRANSMISSION_RATIO_LIMIT=0.01
+      - TRANSMISSION_RATIO_LIMIT_ENABLED=true
+      - TRANSMISSION_ALT_SPEED_DOWN=2000
+      - TRANSMISSION_ALT_SPEED_ENABLED=true
+      - TRANSMISSION_ALT_SPEED_UP=15
+      - TRANSMISSION_SPEED_LIMIT_DOWN=6000
+      - TRANSMISSION_SPEED_LIMIT_DOWN_ENABLED=true
+      - TRANSMISSION_SPEED_LIMIT_UP=30
+      - TRANSMISSION_SPEED_LIMIT_UP_ENABLED=true
+      - TRANSMISSION_INCOMPLETE_DIR=/downloads/incomplete
+      - TRANSMISSION_INCOMPLETE_DIR_ENABLED=true
+      - TRANSMISSION_WATCH_DIR=/downloads
+      - TRANSMISSION_WATCH_DIR_ENABLED=true
+      - TRANSMISSION_DOWNLOAD_DIR=/downloads/completed
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  plex-server:
+    container_name: plex-server
+    image: linuxserver/plex
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - VERSION=docker
+      - UMASK_SET=022
+      #- PLEX_CLAIM=
+    network_mode: host
+    # due to network mode port is exposed on 32400
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ${SSD_ROOT}/config/plex/db:/config
+      - ${SSD_ROOT}/config/plex/transcode:/transcode
+      - ${MERGERFS_ROOT}/complete:/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  emby:
+    image: linuxserver/emby
+    hostname: emby
+    container_name: emby
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - UMASK_SET=022
+    volumes:
+      - ${CONFIG_ROOT}/config/emby/library:/config
+      - ${MERGERFS_ROOT}/complete/tv:/data/tvshows
+      - ${MERGERFS_ROOT}/complete/movies:/data/movies
+      - ${MERGERFS_ROOT}/complete/music:/data/music
+      - ${MERGERFS_ROOT}/complete/anime:/data/anime
+      - ${MERGERFS_ROOT}/complete/anime-movies:/anime-movies 
+      - ${MERGERFS_ROOT}/complete/anime-series:/anime-series 
+      - ${MERGERFS_ROOT}/complete/photos:/data/photos
+      - ${MERGERFS_ROOT}/complete/tv-cartoons:/data/tv-cartoons
+      - ${MERGERFS_ROOT}/complete/movie-cartoons:/data/movie-cartoons
+      - ${SSD_ROOT}/config/emby/transcoding:/transcode
+      - ${CONFIG_ROOT}/config/emby/vc/lib:/opt/vc/lib
+    devices:
+      - /dev/dri:/dev/dri
+    network_mode: host
+    # due to network mode, ports will be exposed as 8096 and 8920
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  emby-webhook:
+    container_name: emby-webhook
+    build:
+      context: ${DOCKER_ROOT}/emby-webhook
+      dockerfile: Dockerfile
+    networks:
+      - public
+    labels:
+      - traefik.frontend.rule=Host:emby-webhook.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=5000
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    restart: unless-stopped
+    depends_on:
+      - traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  autoscan:
+    # https://github.com/cloudbox/autoscan
+    image: hotio/autoscan
+    container_name: autoscan
+    restart: unless-stopped
+    networks:
+      - public
+    ports:
+      - 3030:3030
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - UMASK_SET=022
+      - TZ=${TZ}
+      #PLEX_LOGIN: ""
+      #PLEX_PASSWORD: ""
+    volumes:
+      - ${CONFIG_ROOT}/config/autoscan/config:/config
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  tautulli:
+    container_name: tautulli
+    image: linuxserver/tautulli:latest
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/config/tautulli:/config
+      - ${SSD_ROOT}/config/plex/db/Library:/logdata
+    labels:
+      - traefik.frontend.rule=Host:tautulli.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=8181
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    depends_on:
+      - traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  conreq:
+    image: hotio/conreq
+    container_name: conreq
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - UMASK=002
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/config/conreq:/config
+    labels:
+      - traefik.frontend.rule=Host:conreq.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=8000
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    depends_on:
+      - traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  heimdall:
+    image: linuxserver/heimdall
+    container_name: heimdall
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONFIG_ROOT}/config/heimdall/config:/config
+    networks:
+      - public
+    labels:
+      - traefik.frontend.rule=Host:heimdall.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=80
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    depends_on:
+      - traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  mariadb:
+    image: linuxserver/mariadb
+    container_name: mariadb
+    hostname: mariadb
+    volumes:
+      - ${DOCKER_ROOT}/mariadb:/config
+    ports:
+      - 3306:3306
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  ddns:
+    image: oznu/cloudflare-ddns:latest
+    container_name: ddns
+    restart: unless-stopped
+    networks:
+      - private
+    environment:
+      - EMAIL=${CF_EMAIL}
+      - API_KEY=${CF_API_KEY}
+      - ZONE=${CF_ZONE}
+      - SUBDOMAIN=${CF_SUBDOMAIN}
+      - PROXIED=${CF_PROXIED}
+      - RRTYPE=${CF_RRTYPE}
+      - DELETE_ON_STOP=${CF_DELETE_ON_STOP}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  wireguard:
+    image: ghcr.io/linuxserver/wireguard
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - SERVERURL=wireguard.${DOMAIN}
+      - SERVERPORT=51820
+      - PEERS=pc,mobile
+      - PEERDNS=${WG_LOCALDNS_IP}
+      - INTERNAL_SUBNET=10.64.1.0
+      # routed ips via the tunnel
+      - ALLOWEDIPS=${WG_ALLOWED_IP1},${WG_ALLOWED_IP2}
+    volumes:
+      -  ${CONFIG_ROOT}/config/wireguard:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+  qdirstat:
+    image: jlesage/qdirstat
+    container_name: qdirstat
+    volumes:
+      - ${CONFIG_ROOT}/config/qdirstat:/config
+      - ${MERGERFS_ROOT}/complete/anime:/anime:ro
+      - ${MERGERFS_ROOT}/complete/tv:/tv:ro
+      - ${MERGERFS_ROOT}/complete/movies:/movies:ro
+      - ${MERGERFS_ROOT}/complete/movie-cartoons:/movie-cartoons:ro
+      - ${MERGERFS_ROOT}/complete/tv-cartoons:/tv-cartoons:ro
+    labels:
+      - traefik.frontend.rule=Host:qdirstat.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=5800
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
+    depends_on:
+      - traefik
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+
+networks:
+  private:
+    name: private
+  public:
+    name: public
