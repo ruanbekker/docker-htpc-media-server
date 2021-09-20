@@ -1,6 +1,34 @@
 # docker-htpc-media-server
 HTPC with Docker Compose
 
+## Services
+
+Services in `docker-compose.yml`:
+
+- traefik
+- jackett
+- nzbget
+- hydra
+- sonarr
+- radarr
+- lidarr
+- mylar
+- readarr
+- calibre
+- calibre-web
+- transmission-vpn
+- plex-server
+- emby
+- emby-webhook
+- autoscan
+- tautulli
+- conreq
+- heimdall
+- mariadb
+- ddns
+- wireguard
+- qdirstat
+
 ## Configuration
 
 ### Disks
