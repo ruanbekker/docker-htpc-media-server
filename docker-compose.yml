@@ -73,13 +73,6 @@ services:
       - ${CONFIG_ROOT}/config/hydra:/config
       - ${MERGERFS_ROOT}/downloads:/downloads
       - ${MERGERFS_ROOT}/shared/hydra:/shared
-    labels:
-      - traefik.frontend.rule=Host:hydra.${DOMAIN}
-      - traefik.enable=true
-      - traefik.port=5075
-      - traefik.tags=public
-      - traefik.docker.network=public
-      - traefik.redirectorservice.frontend.entryPoints=http
     restart: always
     depends_on:
       - traefik
@@ -88,7 +81,7 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
     labels:
-      - traefik.frontend.rule=Host:hydra.homedns.xyz
+      - traefik.frontend.rule=Host:hydra.${DOMAIN}
       - traefik.enable=true
       - traefik.port=5075
       - traefik.tags=public
