@@ -1,25 +1,30 @@
 # Your timezone, https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-TZ=
-DOMAIN=
+TZ=Africa/Johannesburg
+DOMAIN=localdns.xyz
 PUID=1000
 PGID=1000
 LOCAL_NETWORK_CIDR=192.168.0.0/24
-# wireguard
-WG_LOCALDNS_IP=
-WG_ALLOWED_IP1=192.168.0.2/32
-WG_ALLOWED_IP2=
+
 # data directories
-MERGERFS_ROOT=/data/htpc
-CONFIG_ROOT=/disk1/htpc
-DOCKER_ROOT=~/htpc/docker-volumes
-SSD_ROOT=/home/htpc/.data
+MERGERFS_ROOT=.
+CONFIG_ROOT=.
+DOCKER_ROOT=.
+SSD_ROOT=.
+
+# wireguard
+WG_LOCALDNS_IP=192.168.0.1
+WG_ALLOWED_IP1=192.168.0.2/32
+WG_ALLOWED_IP2=192.168.0.3/32
+
 # private internet access
-PIA_USERNAME=
-PIA_PASSWORD=
+PIA_USERNAME=null
+PIA_PASSWORD=null
+
 # application specifics
 TRANSMISSION_RPC_USERNAME=admin
 TRANSMISSION_RPC_PASSWORD=admin
-MYSQL_ROOT_PASSWORD=
+MYSQL_ROOT_PASSWORD=rootpassword
+
 # cloudflare
 # ie. dynamicdns.mydomain.com
 CF_EMAIL=
