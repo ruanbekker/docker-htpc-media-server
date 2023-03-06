@@ -47,9 +47,9 @@ services:
       options:
         max-size: "1m"
 
-  nzbget:
-    container_name: nzbget
-    image: linuxserver/nzbget:latest
+  sabnzbd:
+    container_name: sabnzbd
+    image: lscr.io/linuxserver/sabnzbd:latest
     restart: unless-stopped
     network_mode: host
     # due to network mode port is exposed on port 6789
@@ -59,7 +59,7 @@ services:
       - TZ=${TZ}
     volumes:
       - ${MERGERFS_ROOT}/downloads:/downloads
-      - ${CONFIG_ROOT}/config/nzbget:/config
+      - ${CONFIG_ROOT}/config/sabnzbd:/config
     logging:
       driver: "json-file"
       options:
@@ -466,6 +466,27 @@ services:
       driver: "json-file"
       options:
         max-size: "1m"
+        
+  overseerr:
+    container_name: overseerr
+    image: linuxserver/overseerr:version-v1.32.4
+    #image: lscr.io/linuxserver/overseerr:latest
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID} 
+      - PGID=${PGID}
+      - TZ=${TZ} 
+    volumes:
+      - ${CONFIG_ROOT}/config/overseerr:/config
+    networks:
+      - public
+    labels:
+      - traefik.frontend.rule=Host:overseerr.${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=5055
+      - traefik.tags=public
+      - traefik.docker.network=public
+      - traefik.redirectorservice.frontend.entryPoints=http
 
   heimdall:
     image: linuxserver/heimdall
